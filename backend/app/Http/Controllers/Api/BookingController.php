@@ -11,9 +11,9 @@ use App\Jobs\ProcessBookingJob;
 use App\Models\Booking;
 use App\Models\Service;
 use App\Services\AvailabilityService;
-use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 
@@ -140,7 +140,7 @@ class BookingController extends Controller
                     BookingStatus::COMPLETED,
                 ], true)) {
                     return response()->json([
-                        'message' => $booking->status === 'cancelled'
+                        'message' => $booking->status === BookingStatus::CANCELLED
                             ? 'Booking is already cancelled.'
                             : 'Completed bookings cannot be updated.',
                     ], 409);
@@ -191,11 +191,19 @@ class BookingController extends Controller
         );
     }
 
-    private function hasOverlap(Carbon $startAt, Carbon $endAt, Collection $existingBookings)
-    {
+    /**
+     * @param  Collection<int, Booking>  $existingBookings
+     */
+    private function hasOverlap(
+        Carbon $startAt,
+        Carbon $endAt,
+        Collection $existingBookings
+    ): bool {
         foreach ($existingBookings as $existingBooking) {
             $existingStart = $existingBooking->start_at;
-            $existingEnd = $existingStart->copy()->addMinutes($existingBooking->service->duration);
+
+            $existingEnd = $existingStart->copy()
+                ->addMinutes($existingBooking->service->duration);
 
             if ($startAt < $existingEnd && $endAt > $existingStart) {
                 return true;

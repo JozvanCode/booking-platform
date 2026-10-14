@@ -2,9 +2,13 @@
 
 namespace App\Http\Resources;
 
+use App\Models\BusinessHour;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
+/**
+ * @mixin BusinessHour
+ */
 class BusinessHourResource extends JsonResource
 {
     public function toArray(Request $request): array

@@ -61,7 +61,7 @@ class AvailabilityService
             $isBooked = false;
 
             foreach ($bookings as $booking) {
-                $bookingStart = $booking->start_at;
+                $bookingStart = Carbon::parse($booking->start_at);
 
                 $bookingEnd = $bookingStart->copy()
                     ->addMinutes($service->duration);
