@@ -1,20 +1,22 @@
 <?php
 
+use App\Http\Controllers\Api\Admin\AdminController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\AvailabilityController;
 use App\Http\Controllers\Api\BookingController;
 use App\Http\Controllers\Api\BusinessHourController;
-use App\Http\Controllers\Api\HelloController;
 use App\Http\Controllers\Api\ServiceController;
 use Illuminate\Support\Facades\Route;
 
 // Public
-Route::get('/hello', [HelloController::class, 'index']);
-Route::post('/register', [AuthController::class, 'register']);
-Route::post('/login', [AuthController::class, 'login']);
+Route::post('/register', [AuthController::class, 'register'])
+    ->middleware('throttle:5,1');
+
+Route::post('/login', [AuthController::class, 'login'])
+    ->middleware('throttle:login');
 
 // Authenticated
-Route::middleware('auth:sanctum')->group(function () {
+Route::middleware(['auth:sanctum', 'active'])->group(function () {
     Route::get('/me', [AuthController::class, 'me']);
     Route::post('/logout', [AuthController::class, 'logout']);
 
@@ -31,7 +33,7 @@ Route::middleware('auth:sanctum')->group(function () {
 });
 
 // Provider
-Route::middleware(['auth:sanctum', 'role:provider'])->group(function () {
+Route::middleware(['auth:sanctum', 'active', 'role:provider'])->group(function () {
     Route::patch('/bookings/{id}/confirm', [BookingController::class, 'confirm']);
     Route::patch('/bookings/{id}/complete', [BookingController::class, 'complete']);
 
@@ -46,6 +48,25 @@ Route::middleware(['auth:sanctum', 'role:provider'])->group(function () {
     Route::put('/business-hours/{id}', [BusinessHourController::class, 'update']);
     Route::delete('/business-hours/{id}', [BusinessHourController::class, 'destroy']);
 });
+
+// Admin
+Route::middleware(['auth:sanctum', 'active', 'role:admin'])
+    ->prefix('admin')
+    ->group(function () {
+        Route::get('/stats', [AdminController::class, 'stats']);
+
+        Route::get('/users', [AdminController::class, 'users']);
+        Route::get('/users/{id}', [AdminController::class, 'showUser']);
+        Route::patch('/users/{id}/role', [AdminController::class, 'updateRole']);
+        Route::patch('/users/{id}/status', [AdminController::class, 'updateStatus']);
+
+        Route::get('/bookings', [AdminController::class, 'bookings']);
+
+        Route::get('/services', [AdminController::class, 'services']);
+        Route::delete('/services/{id}', [AdminController::class, 'deleteService']);
+
+        Route::get('/audit-logs', [AdminController::class, 'auditLogs']);
+    });
 
 // Temporary test route
 Route::middleware(['auth:sanctum', 'role:provider'])

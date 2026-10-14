@@ -6,6 +6,7 @@ use App\Models\Booking;
 use App\Models\BusinessHour;
 use App\Models\Service;
 use App\Models\User;
+use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
@@ -13,6 +14,15 @@ use Tests\TestCase;
 class AvailabilityTest extends TestCase
 {
     use RefreshDatabase;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        $this->travelTo(
+            Carbon::parse('2026-10-01 08:00:00')
+        );
+    }
 
     public function test_customer_can_view_available_slots(): void
     {

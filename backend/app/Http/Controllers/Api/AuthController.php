@@ -26,12 +26,22 @@ class AuthController extends Controller
 
     public function login(Request $request)
     {
-        $validatedData = $request->validate(['email' => 'required|string|email', 'password' => 'required|string',]);
+        $validatedData = $request->validate(['email' => 'required|string|email', 'password' => 'required|string']);
+
         $user = User::where('email', $validatedData['email'])->first();
-        if (!$user || !Hash::check($validatedData['password'], $user->password)) {
+
+        if (! $user || ! Hash::check($validatedData['password'], $user->password)) {
             return response()->json(['message' => 'Invalid credentials'], 401);
         }
+
+        if (! $user->is_active) {
+            return response()->json([
+                'message' => 'Your account has been disabled.',
+            ], 403);
+        }
+
         $token = $user->createToken('auth_token')->plainTextToken;
+
         return response()->json(['message' => 'Login successful', 'user' => $user, 'token' => $token]);
     }
 
@@ -39,6 +49,7 @@ class AuthController extends Controller
     {
         return response()->json($request->user());
     }
+
     public function logout(Request $request)
     {
         $request->user()->currentAccessToken()->delete();

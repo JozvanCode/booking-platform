@@ -3,12 +3,12 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Http\Resources\ServiceResource;
-use Illuminate\Http\Request;
-use App\Models\Service;
-use Illuminate\Support\Facades\Gate;
 use App\Http\Requests\StoreServiceRequest;
 use App\Http\Requests\UpdateServiceRequest;
+use App\Http\Resources\ServiceResource;
+use App\Models\Service;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Gate;
 
 class ServiceController extends Controller
 {
@@ -22,6 +22,7 @@ class ServiceController extends Controller
             'services' => ServiceResource::collection($services),
         ]);
     }
+
     public function store(StoreServiceRequest $request)
     {
         Gate::authorize('create', Service::class);
@@ -40,6 +41,7 @@ class ServiceController extends Controller
             'service' => new ServiceResource($service),
         ], 201);
     }
+
     public function show(Request $request, int $id)
     {
         $service = Service::findOrFail($id);
@@ -50,6 +52,7 @@ class ServiceController extends Controller
             'service' => new ServiceResource($service),
         ]);
     }
+
     public function update(UpdateServiceRequest $request, int $id)
     {
         $validated = $request->validated();
@@ -65,6 +68,7 @@ class ServiceController extends Controller
             'service' => new ServiceResource($service),
         ]);
     }
+
     public function destroy(Request $request, int $id)
     {
         $service = Service::findOrFail($id);

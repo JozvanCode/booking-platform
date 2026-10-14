@@ -4,7 +4,6 @@ namespace App\Services;
 
 use App\Models\Service;
 use Carbon\Carbon;
-use Illuminate\Support\Collection;
 
 class AvailabilityService
 {
@@ -17,7 +16,7 @@ class AvailabilityService
             ->where('day_of_week', $dayOfWeek)
             ->first();
 
-        if (!$businessHour) {
+        if (! $businessHour) {
             return [];
         }
 
@@ -29,22 +28,22 @@ class AvailabilityService
         $slots = [];
 
         $current = Carbon::parse(
-            $date->toDateString() . ' ' . $businessHour->start_time
+            $date->toDateString().' '.$businessHour->start_time
         );
 
         $end = Carbon::parse(
-            $date->toDateString() . ' ' . $businessHour->end_time
+            $date->toDateString().' '.$businessHour->end_time
         );
 
         $breakStart = $businessHour->break_start
             ? Carbon::parse(
-                $date->toDateString() . ' ' . $businessHour->break_start
+                $date->toDateString().' '.$businessHour->break_start
             )
             : null;
 
         $breakEnd = $businessHour->break_end
             ? Carbon::parse(
-                $date->toDateString() . ' ' . $businessHour->break_end
+                $date->toDateString().' '.$businessHour->break_end
             )
             : null;
 
@@ -76,7 +75,7 @@ class AvailabilityService
                 }
             }
 
-            if (!$isBreak && !$isBooked) {
+            if (! $isBreak && ! $isBooked) {
                 $slots[] = $current->format('H:i');
             }
 
@@ -85,6 +84,7 @@ class AvailabilityService
 
         return $slots;
     }
+
     public function isAvailable(
         Service $service,
         Carbon $startAt

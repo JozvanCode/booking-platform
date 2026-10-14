@@ -29,7 +29,7 @@ class BusinessHourController extends Controller
     {
         Gate::authorize('create', BusinessHour::class);
 
-        $validated = $request->validated();
+        $validated = $this->normalizeTimes($request->validated());
 
         $businessHour = BusinessHour::create([
             'user_id' => $request->user()->id,
@@ -45,13 +45,14 @@ class BusinessHourController extends Controller
             'business_hour' => new BusinessHourResource($businessHour),
         ], 201);
     }
+
     public function update(UpdateBusinessHourRequest $request, int $id)
     {
         $businessHour = BusinessHour::findOrFail($id);
 
         Gate::authorize('update', $businessHour);
 
-        $validated = $request->validated();
+        $validated = $this->normalizeTimes($request->validated());
 
         $businessHour->update($validated);
 
@@ -60,6 +61,7 @@ class BusinessHourController extends Controller
             'business_hour' => new BusinessHourResource($businessHour),
         ]);
     }
+
     public function destroy(Request $request, int $id)
     {
         $businessHour = BusinessHour::findOrFail($id);
@@ -71,5 +73,27 @@ class BusinessHourController extends Controller
         return response()->json([
             'message' => 'Business hours deleted successfully',
         ]);
+    }
+
+    private function normalizeTimes(array $data): array
+    {
+        $timeFields = [
+            'start_time',
+            'end_time',
+            'break_start',
+            'break_end',
+        ];
+
+        foreach ($timeFields as $field) {
+            if (! isset($data[$field])) {
+                continue;
+            }
+
+            if (preg_match('/^\d{2}:\d{2}$/', $data[$field])) {
+                $data[$field] .= ':00';
+            }
+        }
+
+        return $data;
     }
 }

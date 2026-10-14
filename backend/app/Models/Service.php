@@ -2,10 +2,9 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Model;
-use App\Models\User;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
 
 #[Fillable(['user_id', 'name', 'price', 'duration'])]
 class Service extends Model
@@ -16,6 +15,7 @@ class Service extends Model
     {
         return $this->belongsTo(User::class);
     }
+
     public function bookings()
     {
         return $this->hasMany(Booking::class);

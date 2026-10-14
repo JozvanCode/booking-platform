@@ -12,8 +12,12 @@ services:
             DB_DATABASE: ${DB_DATABASE}
             DB_USERNAME: ${DB_USERNAME}
             DB_PASSWORD: ${DB_PASSWORD}
+            REDIS_HOST: ${REDIS_HOST}
+            REDIS_PORT: ${REDIS_PORT}
+            QUEUE_CONNECTION: ${QUEUE_CONNECTION}
         depends_on:
             - mysql
+            - redis
 
     nginx:
         image: nginx:alpine
@@ -44,3 +48,35 @@ services:
             PMA_PORT: 3306
         depends_on:
             - mysql
+    redis:
+        image: redis:7-alpine
+        restart: unless-stopped
+        command: ["redis-server", "--appendonly", "yes"]
+        volumes:
+            - redis_data:/data
+
+    queue-worker:
+        build:
+            context: .
+            dockerfile: Dockerfile
+        restart: unless-stopped
+        working_dir: /var/www
+        volumes:
+            - .:/var/www
+        command: php artisan queue:work redis --sleep=3 --tries=3 --timeout=60
+        environment:
+            DB_CONNECTION: ${DB_CONNECTION}
+            DB_HOST: ${DB_HOST}
+            DB_PORT: ${DB_PORT}
+            DB_DATABASE: ${DB_DATABASE}
+            DB_USERNAME: ${DB_USERNAME}
+            DB_PASSWORD: ${DB_PASSWORD}
+            REDIS_HOST: ${REDIS_HOST}
+            REDIS_PORT: ${REDIS_PORT}
+            REDIS_CLIENT: ${REDIS_CLIENT}
+            QUEUE_CONNECTION: ${QUEUE_CONNECTION}
+        depends_on:
+            - mysql
+            - redis
+volumes:
+    redis_data:

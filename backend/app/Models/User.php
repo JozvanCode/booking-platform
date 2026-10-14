@@ -28,16 +28,20 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'is_active' => 'boolean',
         ];
     }
+
     public function services()
     {
         return $this->hasMany(Service::class);
     }
+
     public function bookings()
     {
         return $this->hasMany(Booking::class);
     }
+
     public function businessHours()
     {
         return $this->hasMany(BusinessHour::class);

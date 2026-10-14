@@ -4,17 +4,18 @@ namespace App\Http\Controllers\Api;
 
 use App\Enums\BookingStatus;
 use App\Http\Controllers\Controller;
-use App\Http\Resources\BookingResource;
-use App\Models\Booking;
-use App\Models\Service;
-use Carbon\Carbon;
-use Illuminate\Http\Request;
-use Illuminate\Database\Eloquent\Collection;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Gate;
 use App\Http\Requests\StoreBookingRequest;
 use App\Http\Requests\UpdateBookingRequest;
+use App\Http\Resources\BookingResource;
+use App\Jobs\ProcessBookingJob;
+use App\Models\Booking;
+use App\Models\Service;
 use App\Services\AvailabilityService;
+use Carbon\Carbon;
+use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Gate;
 
 class BookingController extends Controller
 {
@@ -36,6 +37,7 @@ class BookingController extends Controller
             'bookings' => BookingResource::collection($bookings),
         ]);
     }
+
     public function show(Request $request, int $id)
     {
         $booking = Booking::with('service')->findOrFail($id);
@@ -43,9 +45,10 @@ class BookingController extends Controller
         Gate::authorize('view', $booking);
 
         return response()->json([
-            'booking' => new BookingResource($booking)
+            'booking' => new BookingResource($booking),
         ]);
     }
+
     public function store(
         StoreBookingRequest $request,
         AvailabilityService $availabilityService
@@ -62,9 +65,9 @@ class BookingController extends Controller
 
                 $startAt = Carbon::parse($validated['start_at']);
 
-                if (!$availabilityService->isAvailable($service, $startAt)) {
+                if (! $availabilityService->isAvailable($service, $startAt)) {
                     return response()->json([
-                        'message' => 'The selected time is not available.'
+                        'message' => 'The selected time is not available.',
                     ], 409);
                 }
 
@@ -77,16 +80,18 @@ class BookingController extends Controller
 
                 if ($this->hasOverlap($startAt, $endAt, $existingBookings)) {
                     return response()->json([
-                        'message' => 'The selected time is already booked.'
+                        'message' => 'The selected time is already booked.',
                     ], 409);
                 }
 
                 $booking = Booking::create([
-                    'user_id' =>  $request->user()->id,
+                    'user_id' => $request->user()->id,
                     'service_id' => $validated['service_id'],
                     'start_at' => $startAt,
                     'status' => 'pending',
                 ]);
+
+                ProcessBookingJob::dispatch($booking->id)->afterCommit();
 
                 $booking->load('service');
 
@@ -97,15 +102,16 @@ class BookingController extends Controller
             }
         );
     }
+
     public function destroy(Request $request, int $id)
     {
         $booking = Booking::with('service')->findOrFail($id);
 
         Gate::authorize('delete', $booking);
 
-        if (!$booking->status->canTransitionTo(BookingStatus::CANCELLED)) {
+        if (! $booking->status->canTransitionTo(BookingStatus::CANCELLED)) {
             return response()->json([
-                'message' => 'Booking cannot be cancelled in its current status.'
+                'message' => 'Booking cannot be cancelled in its current status.',
             ], 409);
         }
 
@@ -114,9 +120,10 @@ class BookingController extends Controller
 
         return response()->json([
             'message' => 'Booking cancelled successfully',
-            'booking' => $booking
+            'booking' => $booking,
         ]);
     }
+
     public function update(
         UpdateBookingRequest $request,
         int $id,
@@ -135,7 +142,7 @@ class BookingController extends Controller
                     return response()->json([
                         'message' => $booking->status === 'cancelled'
                             ? 'Booking is already cancelled.'
-                            : 'Completed bookings cannot be updated.'
+                            : 'Completed bookings cannot be updated.',
                     ], 409);
                 }
 
@@ -156,9 +163,9 @@ class BookingController extends Controller
                 $startAt = Carbon::parse($booking->start_at);
                 $endAt = $startAt->copy()->addMinutes($service->duration);
 
-                if (!$availabilityService->isAvailable($service, $startAt)) {
+                if (! $availabilityService->isAvailable($service, $startAt)) {
                     return response()->json([
-                        'message' => 'The selected time is not available.'
+                        'message' => 'The selected time is not available.',
                     ], 409);
                 }
 
@@ -170,7 +177,7 @@ class BookingController extends Controller
 
                 if ($this->hasOverlap($startAt, $endAt, $existingBookings)) {
                     return response()->json([
-                        'message' => 'The selected time is already booked.'
+                        'message' => 'The selected time is already booked.',
                     ], 409);
                 }
 
@@ -183,6 +190,7 @@ class BookingController extends Controller
             }
         );
     }
+
     private function hasOverlap(Carbon $startAt, Carbon $endAt, Collection $existingBookings)
     {
         foreach ($existingBookings as $existingBooking) {
@@ -193,17 +201,19 @@ class BookingController extends Controller
                 return true;
             }
         }
+
         return false;
     }
+
     public function confirm(Request $request, int $id)
     {
         $booking = Booking::with('service')->findOrFail($id);
 
         Gate::authorize('confirm', $booking);
 
-        if (!$booking->status->canTransitionTo(BookingStatus::CONFIRMED)) {
+        if (! $booking->status->canTransitionTo(BookingStatus::CONFIRMED)) {
             return response()->json([
-                'message' => 'Booking cannot be confirmed in its current status.'
+                'message' => 'Booking cannot be confirmed in its current status.',
             ], 409);
         }
 
@@ -215,15 +225,16 @@ class BookingController extends Controller
             'booking' => new BookingResource($booking),
         ]);
     }
+
     public function complete(Request $request, int $id)
     {
         $booking = Booking::with('service')->findOrFail($id);
 
         Gate::authorize('complete', $booking);
 
-        if (!$booking->status->canTransitionTo(BookingStatus::COMPLETED)) {
+        if (! $booking->status->canTransitionTo(BookingStatus::COMPLETED)) {
             return response()->json([
-                'message' => 'Booking cannot be completed in its current status.'
+                'message' => 'Booking cannot be completed in its current status.',
             ], 409);
         }
 

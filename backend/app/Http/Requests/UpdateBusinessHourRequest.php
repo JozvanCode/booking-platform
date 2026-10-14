@@ -2,7 +2,7 @@
 
 namespace App\Http\Requests;
 
-use Illuminate\Contracts\Validation\ValidationRule;
+use App\Models\BusinessHour;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Validator;
@@ -22,7 +22,7 @@ class UpdateBusinessHourRequest extends FormRequest
                 'integer',
                 'between:1,7',
                 Rule::unique('business_hours', 'day_of_week')
-                    ->where(fn($query) => $query->where('user_id', $this->user()->id))
+                    ->where(fn ($query) => $query->where('user_id', $this->user()->id))
                     ->ignore($this->route('id')),
             ],
 
@@ -39,7 +39,7 @@ class UpdateBusinessHourRequest extends FormRequest
         return [
             function (Validator $validator) {
                 $businessHour = $this->route('id')
-                    ? \App\Models\BusinessHour::find($this->route('id'))
+                    ? BusinessHour::find($this->route('id'))
                     : null;
 
                 $start = $this->input('start_time', $businessHour?->start_time);
@@ -55,7 +55,7 @@ class UpdateBusinessHourRequest extends FormRequest
                     );
                 }
 
-                if (($breakStart && !$breakEnd) || (!$breakStart && $breakEnd)) {
+                if (($breakStart && ! $breakEnd) || (! $breakStart && $breakEnd)) {
                     $validator->errors()->add(
                         'break_start',
                         'Both break start and break end are required.'

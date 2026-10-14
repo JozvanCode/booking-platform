@@ -15,7 +15,9 @@ class BookingAvailabilityTest extends TestCase
     use RefreshDatabase;
 
     private User $provider;
+
     private User $customer;
+
     private Service $service;
 
     protected function setUp(): void

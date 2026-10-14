@@ -499,6 +499,7 @@ class BookingTest extends TestCase
 
         $this->assertDatabaseCount('bookings', 1);
     }
+
     public function test_provider_can_confirm_customer_booking(): void
     {
         $provider = User::factory()->create([
@@ -538,6 +539,7 @@ class BookingTest extends TestCase
             'status' => 'confirmed',
         ]);
     }
+
     public function test_provider_cannot_confirm_another_providers_booking(): void
     {
         $provider = User::factory()->create([
@@ -571,6 +573,7 @@ class BookingTest extends TestCase
         $this->patchJson("/api/bookings/{$booking->id}/confirm")
             ->assertForbidden();
     }
+
     public function test_provider_can_complete_confirmed_booking(): void
     {
         $provider = User::factory()->create([

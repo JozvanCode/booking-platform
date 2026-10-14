@@ -82,6 +82,7 @@ class BusinessHourTest extends TestCase
 
         $response->assertStatus(422);
     }
+
     public function test_provider_cannot_create_business_hours_for_same_day_twice(): void
     {
         $provider = User::factory()->create([
@@ -106,6 +107,7 @@ class BusinessHourTest extends TestCase
         $response->assertStatus(422);
         $response->assertJsonValidationErrors('day_of_week');
     }
+
     public function test_provider_cannot_create_business_hours_when_start_is_after_end(): void
     {
         $provider = User::factory()->create([
@@ -122,6 +124,7 @@ class BusinessHourTest extends TestCase
         $response->assertStatus(422);
         $response->assertJsonValidationErrors('start_time');
     }
+
     public function test_provider_cannot_create_business_hours_with_incomplete_break(): void
     {
         $provider = User::factory()->create([
@@ -139,6 +142,7 @@ class BusinessHourTest extends TestCase
         $response->assertStatus(422);
         $response->assertJsonValidationErrors('break_start');
     }
+
     public function test_provider_cannot_create_business_hours_with_break_outside_working_hours(): void
     {
         $provider = User::factory()->create([

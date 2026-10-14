@@ -3,9 +3,9 @@
 namespace Tests\Feature;
 
 use App\Models\Service;
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
-use App\Models\User;
 
 class ServiceTest extends TestCase
 {
@@ -31,6 +31,7 @@ class ServiceTest extends TestCase
             'duration' => 60,
         ]);
     }
+
     public function test_customer_cannot_create_service(): void
     {
         $customer = User::factory()->create([
@@ -46,6 +47,7 @@ class ServiceTest extends TestCase
 
         $response->assertStatus(403);
     }
+
     public function test_provider_cannot_create_service_with_invalid_data(): void
     {
         $provider = User::factory()->create([
@@ -61,6 +63,7 @@ class ServiceTest extends TestCase
 
         $response->assertStatus(422);
     }
+
     public function test_provider_can_only_see_their_own_services(): void
     {
         $provider1 = User::factory()->create([
@@ -89,6 +92,7 @@ class ServiceTest extends TestCase
         $response->assertJsonFragment(['name' => 'Service 1']);
         $response->assertJsonMissing(['name' => 'Service 2']);
     }
+
     public function test_provider_can_view_their_own_service(): void
     {
         $provider = User::factory()->create([
@@ -109,6 +113,7 @@ class ServiceTest extends TestCase
             'name' => 'Oil Change',
         ]);
     }
+
     public function test_provider_cannot_view_another_providers_service(): void
     {
         $provider1 = User::factory()->create([
@@ -128,6 +133,7 @@ class ServiceTest extends TestCase
 
         $response->assertStatus(403);
     }
+
     public function test_provider_cannot_view_nonexistent_service(): void
     {
         $provider = User::factory()->create([
@@ -139,6 +145,7 @@ class ServiceTest extends TestCase
 
         $response->assertStatus(404);
     }
+
     public function test_provider_can_update_their_own_service(): void
     {
         $provider = User::factory()->create([
@@ -168,6 +175,7 @@ class ServiceTest extends TestCase
             'duration' => 45,
         ]);
     }
+
     public function test_provider_cannot_update_another_providers_service(): void
     {
         $provider1 = User::factory()->create([
@@ -202,6 +210,7 @@ class ServiceTest extends TestCase
             'duration' => 60,
         ]);
     }
+
     public function test_provider_can_delete_their_own_service(): void
     {
         $provider = User::factory()->create([
@@ -222,6 +231,7 @@ class ServiceTest extends TestCase
             'id' => $service->id,
         ]);
     }
+
     public function test_provider_cannot_delete_another_providers_service(): void
     {
         $provider1 = User::factory()->create([
@@ -248,6 +258,7 @@ class ServiceTest extends TestCase
             'name' => 'Oil Change',
         ]);
     }
+
     public function test_user_cannot_update_service_without_any_fields(): void
     {
         $provider = User::factory()->create([
@@ -263,6 +274,7 @@ class ServiceTest extends TestCase
 
         $response->assertStatus(422);
     }
+
     public function test_provider_can_update_only_service_name(): void
     {
         $provider = User::factory()->create([
