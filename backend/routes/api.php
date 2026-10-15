@@ -9,6 +9,13 @@ use App\Http\Controllers\Api\ServiceController;
 use Illuminate\Support\Facades\Route;
 
 // Public
+Route::get('/health', function () {
+    return response()->json([
+        'status' => 'ok',
+        'service' => 'booking-api',
+    ]);
+});
+
 Route::post('/register', [AuthController::class, 'register'])
     ->middleware('throttle:5,1');
 

@@ -1,0 +1,78 @@
+# syntax=docker/dockerfile:1
+
+# =====================================
+# 1. Base image
+# =====================================
+FROM php:8.4-fpm AS base
+
+WORKDIR /var/www
+
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+        libzip-dev \
+        unzip \
+    && docker-php-ext-install \
+        pdo_mysql \
+        opcache \
+        zip \
+    && pecl install redis \
+    && docker-php-ext-enable redis \
+    && rm -rf /var/lib/apt/lists/*
+
+# Security: hide PHP version
+RUN echo "expose_php=Off" > /usr/local/etc/php/conf.d/security.ini
+
+# PHP production configuration
+RUN printf "opcache.enable=1\n\
+opcache.memory_consumption=128\n\
+opcache.max_accelerated_files=10000\n\
+opcache.validate_timestamps=0\n" \
+    > /usr/local/etc/php/conf.d/opcache.ini
+
+# =====================================
+# 2. Composer dependencies
+# =====================================
+FROM base AS vendor
+
+COPY --from=composer:2 /usr/bin/composer /usr/local/bin/composer
+
+COPY composer.json composer.lock ./
+
+RUN composer install \
+    --no-dev \
+    --prefer-dist \
+    --no-interaction \
+    --no-progress \
+    --no-scripts \
+    --optimize-autoloader
+
+# =====================================
+# 3. Production runtime
+# =====================================
+FROM base AS production
+
+ENV APP_ENV=production \
+    APP_DEBUG=false
+
+COPY . .
+
+COPY --from=vendor /var/www/vendor ./vendor
+
+# Remove cached development providers
+RUN rm -f bootstrap/cache/*.php \
+    && php artisan package:discover --ansi
+
+# Prepare Laravel directories
+RUN mkdir -p \
+        storage/app/public \
+        storage/framework/cache/data \
+        storage/framework/sessions \
+        storage/framework/views \
+        storage/logs \
+        bootstrap/cache \
+    && chown -R www-data:www-data storage bootstrap/cache \
+    && chmod -R ug+rwX storage bootstrap/cache
+
+USER www-data
+
+CMD ["php-fpm"]
