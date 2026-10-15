@@ -11,6 +11,7 @@ permissions:
 jobs:
   publish:
     runs-on: ubuntu-latest
+
     permissions:
       contents: read
       packages: write
@@ -35,7 +36,7 @@ jobs:
           context: ./backend
           file: ./backend/Dockerfile.prod
           push: true
-          tags: ghcr.io/${{ github.repository }}-api:latest
+          tags: ghcr.io/jozvancode/booking-platform-api:latest
 
       - name: Build and push Nginx
         uses: docker/build-push-action@v6
@@ -43,4 +44,4 @@ jobs:
           context: ./backend
           file: ./backend/Dockerfile.nginx
           push: true
-          tags: ghcr.io/${{ github.repository }}-nginx:latest
+          tags: ghcr.io/jozvancode/booking-platform-nginx:latest
