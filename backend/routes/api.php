@@ -16,6 +16,13 @@ Route::get('/health', function () {
     ]);
 });
 
+Route::get('/version', function () {
+    return response()->json([
+        'version' => 'v2',
+        'service' => 'booking-api',
+    ]);
+});
+
 Route::post('/register', [AuthController::class, 'register'])
     ->middleware('throttle:5,1');
 
