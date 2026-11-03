@@ -1,0 +1,22 @@
+name: Self-hosted Runner Test
+
+on:
+  workflow_dispatch:
+
+jobs:
+  test-runner:
+    runs-on: [self-hosted, Linux, X64, booking-deploy]
+
+    permissions:
+      contents: read
+
+    timeout-minutes: 5
+
+    steps:
+      - name: Check Ubuntu environment
+        run: |
+          echo "Runner is working!"
+          whoami
+          hostname
+          uname -a
+          pwd
