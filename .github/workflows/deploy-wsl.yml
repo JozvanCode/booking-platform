@@ -1,45 +1,96 @@
 name: Deploy WSL
 
 on:
-  workflow_dispatch:
-    inputs:
-      image_tag:
-        description: "Existing GHCR image tag (7-character SHA)"
-        required: true
-        type: string
+  workflow_run:
+    workflows: ["Docker Publish"]
+    types:
+      - completed
+    branches:
+      - main
 
 permissions:
   contents: read
 
+concurrency:
+  group: booking-wsl-deploy
+  cancel-in-progress: false
+
 jobs:
   deploy:
     name: Deploy Booking API
+
+    if: >-
+      ${{
+        github.event.workflow_run.conclusion == 'success' &&
+        github.event.workflow_run.head_branch == 'main' &&
+        github.event.workflow_run.head_repository.full_name == github.repository &&
+        github.event.workflow_run.event == 'workflow_run'
+      }}
+
     runs-on: [self-hosted, Linux, X64, booking-deploy]
+    environment: local-wsl
     timeout-minutes: 15
 
-    concurrency:
-      group: booking-wsl-deploy
-      cancel-in-progress: false
-
     steps:
-      - name: Validate image tag
+      - name: Verify commit is current main
         shell: bash
         env:
-          IMAGE_TAG: ${{ inputs.image_tag }}
+          COMMIT_SHA: ${{ github.event.workflow_run.head_sha }}
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
         run: |
-          [[ "$IMAGE_TAG" =~ ^[0-9a-f]{7}$ ]] || exit 1
+          set -euo pipefail
+
+          MAIN_SHA=$(curl -fsS \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/$REPOSITORY/git/ref/heads/main" \
+            | python3 -c 'import json,sys; print(json.load(sys.stdin)["object"]["sha"])')
+
+          if [[ "$COMMIT_SHA" != "$MAIN_SHA" ]]; then
+            echo "Outdated build - skipping deployment."
+            echo "Build commit: $COMMIT_SHA"
+            echo "Current main: $MAIN_SHA"
+            exit 1
+          fi
+
+          echo "Commit verified: $COMMIT_SHA"
+
+      - name: Generate image tag
+        id: version
+        shell: bash
+        env:
+          COMMIT_SHA: ${{ github.event.workflow_run.head_sha }}
+        run: |
+          set -euo pipefail
+
+          TAG="${COMMIT_SHA:0:7}"
+
+          [[ "$TAG" =~ ^[0-9a-f]{7}$ ]] || {
+            echo "Invalid image tag"
+            exit 1
+          }
+
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "Deploying image tag: $TAG"
 
       - name: Deploy Booking API
         shell: bash
         working-directory: /home/jozefsolymosy/projects/booking-platform/backend
         env:
-          IMAGE_TAG: ${{ inputs.image_tag }}
+          IMAGE_TAG: ${{ steps.version.outputs.tag }}
           DOCKER_CONFIG: /home/jozefsolymosy/.docker-deploy
         run: |
+          set -euo pipefail
+
           ./deploy.sh "$IMAGE_TAG"
 
       - name: Verify API
         shell: bash
         run: |
           curl --fail --silent --show-error \
+            --retry 5 --retry-delay 2 \
             http://localhost:8003/api/health
+
+          echo ""
+          echo "Deployment health check passed!"
