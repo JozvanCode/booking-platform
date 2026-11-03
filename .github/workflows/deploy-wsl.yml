@@ -1,12 +1,12 @@
 name: Deploy WSL
 
 on:
-  workflow_dispatch:
-    inputs:
-      image_tag:
-        description: "Existing GHCR image tag (7-character SHA)"
-        required: true
-        type: string
+  workflow_run:
+    workflows: ["Docker Publish"]
+    types:
+      - completed
+    branches:
+      - main
 
 permissions:
   contents: read
@@ -14,7 +14,17 @@ permissions:
 jobs:
   deploy:
     name: Deploy Booking API
+
+    if: >-
+      ${{
+        github.event.workflow_run.conclusion == 'success' &&
+        github.event.workflow_run.head_branch == 'main' &&
+        github.event.workflow_run.head_repository.full_name == github.repository &&
+        github.event.workflow_run.event == 'workflow_run'
+      }}
+
     runs-on: [self-hosted, Linux, X64, booking-deploy]
+    environment: local-wsl
     timeout-minutes: 15
 
     concurrency:
@@ -22,18 +32,21 @@ jobs:
       cancel-in-progress: false
 
     steps:
-      - name: Validate image tag
+      - name: Generate image tag
+        id: version
         shell: bash
         env:
-          IMAGE_TAG: ${{ inputs.image_tag }}
+          COMMIT_SHA: ${{ github.event.workflow_run.head_sha }}
         run: |
-          [[ "$IMAGE_TAG" =~ ^[0-9a-f]{7}$ ]] || exit 1
+          TAG="${COMMIT_SHA:0:7}"
+          [[ "$TAG" =~ ^[0-9a-f]{7}$ ]] || exit 1
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
 
       - name: Deploy Booking API
         shell: bash
         working-directory: /home/jozefsolymosy/projects/booking-platform/backend
         env:
-          IMAGE_TAG: ${{ inputs.image_tag }}
+          IMAGE_TAG: ${{ steps.version.outputs.tag }}
           DOCKER_CONFIG: /home/jozefsolymosy/.docker-deploy
         run: |
           ./deploy.sh "$IMAGE_TAG"
