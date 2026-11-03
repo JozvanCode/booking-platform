@@ -1,0 +1,45 @@
+name: Deploy WSL
+
+on:
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: "Existing GHCR image tag (7-character SHA)"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    name: Deploy Booking API
+    runs-on: [self-hosted, Linux, X64, booking-deploy]
+    timeout-minutes: 15
+
+    concurrency:
+      group: booking-wsl-deploy
+      cancel-in-progress: false
+
+    steps:
+      - name: Validate image tag
+        shell: bash
+        env:
+          IMAGE_TAG: ${{ inputs.image_tag }}
+        run: |
+          [[ "$IMAGE_TAG" =~ ^[0-9a-f]{7}$ ]] || exit 1
+
+      - name: Deploy Booking API
+        shell: bash
+        working-directory: /home/jozefsolymosy/projects/booking-platform/backend
+        env:
+          IMAGE_TAG: ${{ inputs.image_tag }}
+          DOCKER_CONFIG: /home/jozefsolymosy/.docker-deploy
+        run: |
+          ./deploy.sh "$IMAGE_TAG"
+
+      - name: Verify API
+        shell: bash
+        run: |
+          curl --fail --silent --show-error \
+            http://localhost:8003/api/health
