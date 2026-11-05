@@ -53,6 +53,9 @@ services:
       timeout: 5s
       retries: 3
       start_period: 20s
+    networks:
+      - default
+      - booking-monitoring
   mysql:
     image: mysql:8.4
     restart: unless-stopped
@@ -109,3 +112,7 @@ volumes:
   mysql_data:
   redis_data:
   laravel_storage:
+
+networks:
+  booking-monitoring:
+    external: true
