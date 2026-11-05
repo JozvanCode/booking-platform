@@ -1,155 +1,130 @@
-# Booking API Platform
+# 📅 Booking API Platform
 
-A RESTful booking API built with Laravel and PHP.
+<div align="center">
 
-The project is a learning and portfolio project focused on backend development, API design, authentication, authorization, database relationships, testing, Docker and DevOps.
+**A Laravel booking REST API with containerized infrastructure, automated CI/CD, self-hosted deployment, and observability.**
 
-## Tech Stack
+[![PHP](https://img.shields.io/badge/PHP-8.4-777BB4?logo=php&logoColor=white)](https://www.php.net/)
+[![Laravel](https://img.shields.io/badge/Laravel-13-FF2D20?logo=laravel&logoColor=white)](https://laravel.com/)
+[![MySQL](https://img.shields.io/badge/MySQL-8.4-4479A1?logo=mysql&logoColor=white)](https://www.mysql.com/)
+[![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?logo=docker&logoColor=white)](https://docs.docker.com/compose/)
+[![GitHub Actions](https://img.shields.io/badge/CI%2FCD-GitHub_Actions-2088FF?logo=githubactions&logoColor=white)](https://github.com/features/actions)
+[![Grafana](https://img.shields.io/badge/Monitoring-Grafana-F46800?logo=grafana&logoColor=white)](https://grafana.com/)
 
-* **PHP 8.4**
-* **Laravel 13**
-* **MySQL 8.4**
-* **Laravel Sanctum** — API authentication
-* **Eloquent ORM** — database relationships and queries
-* **Docker / Docker Compose**
-* **Nginx**
-* **phpMyAdmin**
-* **PHPUnit / Laravel Testing**
+</div>
 
-## Project Goals
+---
 
-The goal of this project is to build a realistic booking backend while learning and applying:
+## 📖 About
 
-* REST API development
-* Laravel architecture
-* Authentication with Sanctum
-* Role-based authorization
-* Policies and middleware
-* Form Requests and validation
-* Eloquent relationships
-* Database migrations and constraints
-* Transactions and concurrency handling
-* Booking availability
-* Prevention of double bookings
-* Automated testing
-* Dockerized development environment
-* DevOps practices
+Booking API Platform is a **backend and DevOps portfolio project** built around a realistic service-booking workflow. Customers can book available time slots; providers manage services, working hours, and booking statuses. The application enforces authorization rules and prevents conflicting reservations.
 
-## Features
+Beyond API development, the project demonstrates the delivery lifecycle: **automated checks → container image publishing → deployment → health verification → infrastructure monitoring**.
 
-### Authentication
+The deployment runs on **Docker Engine inside Ubuntu WSL2**, using a self-hosted GitHub Actions runner. It is a local learning environment, **not a publicly hosted or highly available production service**.
 
-The API supports:
+### ✨ Highlights
 
-* User registration
-* User login
-* Authenticated user information
-* Token-based authentication using Laravel Sanctum
+- 🔐 **Sanctum authentication** — token-based API access and protected endpoints
+- 👥 **Role-based authorization** — admin, provider, and customer roles; Laravel policies
+- 📅 **Booking availability** — working hours, breaks, service duration, and existing reservations
+- 🔒 **Double-booking protection** — transactions, row locking, and overlap checks
+- 🧪 **Automated quality checks** — Laravel tests, Pint, and PHPStan in GitHub Actions
+- 🐳 **Containerized stack** — Nginx, PHP-FPM, MySQL, Redis, and a queue worker
+- 🚀 **Automated delivery** — GitHub Actions, GHCR, and a self-hosted deployment runner
+- ❤️ **Health checks and rollback handling** — post-deployment verification
+- 📈 **Observability** — Prometheus, Grafana, Node Exporter, cAdvisor, and Blackbox Exporter
 
-### User Roles
+---
 
-The application currently supports three roles:
+## 🛠️ Tech Stack
 
-* `admin`
-* `provider`
-* `customer`
+| Area                | Technologies                                         | Why they are used                                |
+| ------------------- | ---------------------------------------------------- | ------------------------------------------------ |
+| Backend             | PHP 8.4, Laravel 13                                  | REST API, validation, business logic             |
+| Authentication      | Laravel Sanctum                                      | Token-based authentication                       |
+| Authorization       | Policies, middleware                                 | Ownership and role-based permissions             |
+| Data                | MySQL 8.4, Eloquent ORM                              | Relational data, migrations, transactions        |
+| Caching / jobs      | Redis, Laravel Queue Worker                          | Cache and asynchronous job processing            |
+| Web server          | Nginx, PHP-FPM                                       | HTTP entry point and PHP execution               |
+| Containers          | Docker Engine, Docker Compose                        | Reproducible service environments                |
+| CI / quality        | GitHub Actions, PHPUnit/Laravel tests, Pint, PHPStan | Automated verification                           |
+| Image registry      | GitHub Container Registry (GHCR)                     | Store built application images                   |
+| Deployment          | Self-hosted GitHub Actions runner, Ubuntu WSL2       | Local automated deployment                       |
+| Monitoring          | Prometheus, Grafana                                  | Metrics collection and dashboards                |
+| Exporters           | Node Exporter, cAdvisor, Blackbox Exporter           | Host, container, and HTTP availability metrics   |
+| Development tooling | phpMyAdmin                                           | Database administration in the development setup |
 
-Provider and customer functionality is implemented with role-based authorization.
+---
 
-The user's role cannot be changed through normal registration because the role field is intentionally not mass assignable.
+## 🏗️ System Architecture
 
-### Services
+```mermaid
+flowchart TD
+    Dev[Git push / Pull Request] --> CI[GitHub Actions: Laravel CI]
+    CI -->|main branch succeeds| Publish[Docker Publish]
+    Publish --> GHCR[(GitHub Container Registry)]
+    GHCR --> Deploy[Deploy WSL: self-hosted runner]
+    Deploy --> Nginx
 
-Providers can manage their services.
+    subgraph WSL[Ubuntu WSL2 / Docker Engine]
+      Nginx[Nginx HTTP entry point] --> App[Laravel / PHP-FPM]
+      App --> MySQL[(MySQL)]
+      App --> Redis[(Redis)]
+      Worker[Laravel Queue Worker] --> Redis
+      Worker --> MySQL
 
-Each service contains:
-
-* Name
-* Price
-* Duration
-* Provider
-* Created/updated timestamps
-
-Prices are stored as integers representing the smallest currency unit.
-
-For example:
-
-```text
-€50.00 → 5000
+      Node[Node Exporter] --> Prom[Prometheus]
+      Cadvisor[cAdvisor] --> Prom
+      Blackbox[Blackbox Exporter] --> Prom
+      Blackbox -->|GET /api/health| Nginx
+      Prom --> Grafana[Grafana dashboards]
+    end
 ```
 
-Providers can:
+**Request flow:** An HTTP request reaches Nginx, which forwards PHP application requests to Laravel/PHP-FPM. Laravel applies authentication, authorization, validation, and booking rules before interacting with MySQL or Redis.
 
-* Create services
-* List their services
-* View a service
-* Update a service
-* Delete a service
+**Delivery flow:** GitHub Actions validates the code, publishes a container image to GHCR, and invokes a self-hosted runner to deploy it in WSL2. Deployment health checks confirm whether the API responds successfully.
 
-### Business Hours
+**Monitoring flow:** Exporters expose metrics to Prometheus; Grafana queries Prometheus to visualize host and container performance. Blackbox Exporter actively probes the API health endpoint.
 
-Providers can define their working hours.
+---
 
-Each business hour contains:
+## 🎯 Backend Features Explained
 
-* Day of week
-* Start time
-* End time
-* Optional break start
-* Optional break end
+### Authentication and roles
 
-The database prevents a provider from creating multiple business-hour records for the same day.
+- Users can register, log in, and retrieve their authenticated profile.
+- Laravel Sanctum protects authenticated API routes.
+- Roles: `admin`, `provider`, `customer`.
+- Policies and middleware restrict operations to the appropriate role and resource owner.
+- Normal registration cannot mass-assign the user role.
 
-Validation also ensures:
+### Services and business hours
 
-* Start time is before end time
-* Break start and break end must be provided together
-* Break must be before its end
-* Break must be inside working hours
+Providers manage services with a **name, price, duration, and owner**. Prices are stored as integer minor currency units (`€50.00` → `5000`), avoiding floating-point representation for monetary values.
 
-### Booking System
+Providers also define weekly working hours and optional breaks. Validation checks time ordering and break boundaries; a database uniqueness constraint prevents multiple business-hour entries for the same provider and weekday.
 
-Customers can create bookings for available services.
+### Booking lifecycle
 
-A booking contains:
-
-* Customer
-* Service
-* Start time
-* Status
-* Created/updated timestamps
-
-Booking statuses:
+Customers create bookings for available slots. Supported statuses are `pending`, `confirmed`, `cancelled`, and `completed`.
 
 ```text
 pending
-confirmed
-cancelled
-completed
+├── confirmed
+│   ├── completed
+│   └── cancelled
+└── cancelled
 ```
 
-The intended status flow is:
+Invalid status transitions are rejected. Providers can confirm and complete bookings for their services; customers manage their own bookings.
 
-```text
-pending
-   ├── confirmed
-   │      ├── completed
-   │      └── cancelled
-   │
-   └── cancelled
-```
+### Availability and double-booking prevention
 
-Invalid status transitions are rejected.
+Availability depends on the provider's business hours, service duration, breaks, and existing `pending` or `confirmed` bookings.
 
-### Booking Availability
-
-The API calculates available booking slots based on:
-
-* Provider business hours
-* Service duration
-* Business breaks
-* Existing pending bookings
-* Existing confirmed bookings
+Booking creation and updates use **database transactions and row locking** alongside overlap checks. An unavailable time slot results in an HTTP `409 Conflict` response.
 
 Example:
 
@@ -157,433 +132,301 @@ Example:
 GET /api/services/{service}/availability?date=2026-10-05
 ```
 
-Example response:
-
 ```json
 {
-    "service": {
-        "id": 28,
-        "name": "Oil Change",
-        "duration": 60
-    },
-    "date": "2026-10-05",
-    "available_slots": [
-        "08:00",
-        "10:00",
-        "11:00",
-        "13:00",
-        "14:00",
-        "15:00"
-    ]
+  "service": { "id": 28, "name": "Oil Change", "duration": 60 },
+  "date": "2026-10-05",
+  "available_slots": ["08:00", "10:00", "11:00", "13:00", "14:00", "15:00"]
 }
 ```
 
-### Double Booking Prevention
+---
 
-Booking creation and updates use database transactions and row locking.
+## 🔌 API Endpoints
 
-Before creating or updating a booking, the application checks:
+The following endpoints describe the main booking functionality. Authentication and role requirements apply as configured in Laravel routes and policies.
 
-1. Whether the selected time is within business hours.
-2. Whether the selected time overlaps a break.
-3. Whether another pending or confirmed booking overlaps the requested time.
-4. Whether the service is locked during the transaction.
+| Method   | Endpoint                               | Purpose                                |
+| -------- | -------------------------------------- | -------------------------------------- |
+| `POST`   | `/api/register`                        | Register                               |
+| `POST`   | `/api/login`                           | Login                                  |
+| `GET`    | `/api/me`                              | Current user                           |
+| `GET`    | `/api/bookings`                        | List accessible bookings               |
+| `GET`    | `/api/bookings/{id}`                   | View booking                           |
+| `POST`   | `/api/bookings`                        | Create booking                         |
+| `PUT`    | `/api/bookings/{id}`                   | Update booking                         |
+| `DELETE` | `/api/bookings/{id}`                   | Cancel booking                         |
+| `GET`    | `/api/services/{service}/availability` | Available time slots                   |
+| `GET`    | `/api/services`                        | List services                          |
+| `POST`   | `/api/services`                        | Create service                         |
+| `GET`    | `/api/services/{id}`                   | View service                           |
+| `PUT`    | `/api/services/{id}`                   | Update service                         |
+| `DELETE` | `/api/services/{id}`                   | Delete service                         |
+| `GET`    | `/api/business-hours`                  | List business hours                    |
+| `POST`   | `/api/business-hours`                  | Add business hours                     |
+| `PUT`    | `/api/business-hours/{id}`             | Update business hours                  |
+| `DELETE` | `/api/business-hours/{id}`             | Delete business hours                  |
+| `PATCH`  | `/api/bookings/{id}/confirm`           | Confirm booking                        |
+| `PATCH`  | `/api/bookings/{id}/complete`          | Complete booking                       |
+| `GET`    | `/api/health`                          | Deployment and monitoring health check |
 
-If the selected time is unavailable, the API returns:
+The project also includes a simple `/api/hello` test endpoint.
 
-```http
-409 Conflict
+---
+
+## 🗃️ Data Model
+
+```text
+User (id, name, email, password, role)
+  ├── hasMany Service
+  ├── hasMany Booking
+  └── hasMany BusinessHour
+
+Service (id, user_id, name, price, duration)
+  ├── belongsTo User (provider)
+  └── hasMany Booking
+
+BusinessHour (id, user_id, day_of_week, start_time, end_time,
+              break_start, break_end)
+  └── belongsTo User
+
+Booking (id, user_id, service_id, start_at, status)
+  ├── belongsTo User (customer)
+  └── belongsTo Service
 ```
 
-Example:
+A unique constraint exists on `business_hours(user_id, day_of_week)`. Booking logic also uses transactions and locking to handle concurrent requests.
+
+---
+
+## 🐳 Docker and Infrastructure
+
+The backend runs as multiple services rather than a single process:
+
+| Service        | Responsibility                                  |
+| -------------- | ----------------------------------------------- |
+| `nginx`        | Receives HTTP traffic and forwards PHP requests |
+| `app`          | Runs Laravel with PHP-FPM                       |
+| `mysql`        | Persists application data                       |
+| `redis`        | Supports cache and queues                       |
+| `queue-worker` | Processes background jobs                       |
+
+The WSL deployment uses `backend/compose.wsl.yaml`. Monitoring is defined separately in `monitoring/compose.yaml`, so its lifecycle is independent of the application deployment.
+
+**Docker networking:** Nginx joins both the application network and an external `booking-monitoring` network. Blackbox Exporter uses this shared network to call `http://booking-wsl-nginx-1/api/health`. The external network must exist before deploying on a new host:
+
+```bash
+docker network create booking-monitoring
+```
+
+Run this command once; if the network already exists, do not recreate it.
+
+---
+
+## 🔄 CI/CD Pipeline
+
+### 1. Laravel CI
+
+On the relevant GitHub events, the CI workflow runs automated tests and code-quality checks, including **Laravel Pint** and **PHPStan**. Failed checks prevent the successful delivery path from proceeding.
+
+### 2. Docker Publish
+
+After successful CI on the deployment branch, GitHub Actions builds the application Docker image and pushes it to **GHCR**, using a commit-derived image tag for traceability.
+
+### 3. Deploy WSL
+
+A **self-hosted GitHub Actions runner** in Ubuntu WSL2 runs the deployment script. The deployment uses the published image, applies migrations, checks API health, and includes rollback handling if deployment verification fails.
+
+```text
+Pull Request → CI checks → Merge into main
+                             ↓
+                        Laravel CI
+                             ↓
+                       Docker Publish
+                             ↓
+                            GHCR
+                             ↓
+                  Deploy WSL (self-hosted)
+                             ↓
+                  Health check / rollback
+```
+
+**Operational limitation:** The self-hosted runner and Docker daemon must be running in WSL2. This lab does not provide cloud hosting, automatic failover, or high availability. Rollback handling should not be interpreted as an automatic reversal of database schema migrations.
+
+---
+
+## 📊 Monitoring and Observability
+
+The `monitoring/` Compose project runs:
+
+- **Prometheus** — scrapes exporter metrics every 15 seconds.
+- **Grafana** — visualizes collected metrics.
+- **Node Exporter** — exposes Ubuntu CPU and memory metrics.
+- **cAdvisor** — exposes Docker container CPU and memory metrics.
+- **Blackbox Exporter** — probes the Laravel API over HTTP.
+
+The Grafana dashboard **Booking Platform – Infrastructure** includes Ubuntu CPU, Ubuntu RAM, Docker container CPU, and Docker container RAM panels. A CPU stress test was used to verify that the container CPU chart reflects approximately 100% of one CPU core under load.
+
+### API availability check
+
+The Blackbox job probes:
+
+```text
+http://booking-wsl-nginx-1/api/health
+```
+
+Prometheus query:
+
+```promql
+probe_success{job="booking-api"}
+```
+
+- `1` — the HTTP probe succeeded.
+- `0` — the probe failed.
+- No data — investigate the scrape target and configuration.
+
+The `probe_success` metric checks HTTP availability; it does **not** prove that every booking operation or database transaction is healthy.
+
+### Local dashboards
+
+| Tool               | URL in the WSL lab                 |
+| ------------------ | ---------------------------------- |
+| Booking API health | `http://localhost:8003/api/health` |
+| Prometheus         | `http://localhost:9090`            |
+| Grafana            | `http://localhost:3001`            |
+
+Prometheus and Grafana ports are bound to loopback in the provided monitoring Compose configuration. Configure Grafana credentials before sharing the environment.
+
+---
+
+## 🚀 Running and Testing
+
+### Prerequisites
+
+- Docker Engine and Docker Compose v2 (the demonstrated deployment uses Ubuntu WSL2)
+- Git, for cloning and working with the repository
+- Appropriate environment variables for the selected Compose configuration
+- A GitHub self-hosted runner **only if** reproducing the automated WSL deployment
+
+The repository includes different Compose configurations for different environments. **Choose the configuration appropriate to your setup**; do not assume the WSL deployment file can be started without its required environment values and published image.
+
+### Validate configuration
+
+From the repository root, with a properly configured `backend/.env.production`:
+
+```bash
+cd backend
+docker compose --env-file .env.production -f compose.wsl.yaml config --quiet
+```
+
+### Check the running WSL deployment
+
+```bash
+curl -fsS http://localhost:8003/api/health
+```
+
+Expected response:
 
 ```json
-{
-    "message": "The selected time is already booked."
-}
+{ "status": "ok", "service": "booking-api" }
 ```
 
-## Authorization
+### Start the monitoring stack
 
-Authorization is implemented using Laravel Policies and middleware.
+From the repository root:
 
-Examples:
-
-### Customers
-
-Customers can:
-
-* Create their own bookings
-* View their own bookings
-* Update their own bookings
-* Cancel their own bookings
-
-### Providers
-
-Providers can:
-
-* Manage their own services
-* Manage their own business hours
-* View bookings belonging to their services
-* Confirm bookings
-* Complete bookings
-
-Users cannot access resources belonging to another provider or customer.
-
-## API Endpoints
-
-### Public
-
-| Method | Endpoint        | Description     |
-| ------ | --------------- | --------------- |
-| GET    | `/api/hello`    | Test endpoint   |
-| POST   | `/api/register` | Register a user |
-| POST   | `/api/login`    | Login           |
-
-### Authenticated
-
-| Method | Endpoint                               | Description                |
-| ------ | -------------------------------------- | -------------------------- |
-| GET    | `/api/me`                              | Current authenticated user |
-| GET    | `/api/bookings`                        | List user's bookings       |
-| GET    | `/api/bookings/{id}`                   | Show booking               |
-| POST   | `/api/bookings`                        | Create booking             |
-| PUT    | `/api/bookings/{id}`                   | Update booking             |
-| DELETE | `/api/bookings/{id}`                   | Cancel booking             |
-| GET    | `/api/services/{service}/availability` | Get available slots        |
-
-### Provider
-
-| Method | Endpoint                      | Description            |
-| ------ | ----------------------------- | ---------------------- |
-| POST   | `/api/services`               | Create service         |
-| GET    | `/api/services`               | List provider services |
-| GET    | `/api/services/{id}`          | Show service           |
-| PUT    | `/api/services/{id}`          | Update service         |
-| DELETE | `/api/services/{id}`          | Delete service         |
-| GET    | `/api/business-hours`         | List business hours    |
-| POST   | `/api/business-hours`         | Create business hours  |
-| PUT    | `/api/business-hours/{id}`    | Update business hours  |
-| DELETE | `/api/business-hours/{id}`    | Delete business hours  |
-| PATCH  | `/api/bookings/{id}/confirm`  | Confirm booking        |
-| PATCH  | `/api/bookings/{id}/complete` | Complete booking       |
-
-## Database Structure
-
-### Users
-
-```text
-users
-├── id
-├── name
-├── email
-├── password
-├── role
-└── timestamps
-```
-
-### Services
-
-```text
-services
-├── id
-├── user_id
-├── name
-├── price
-├── duration
-└── timestamps
-```
-
-### Business Hours
-
-```text
-business_hours
-├── id
-├── user_id
-├── day_of_week
-├── start_time
-├── end_time
-├── break_start
-├── break_end
-└── timestamps
-```
-
-A unique constraint exists on:
-
-```text
-user_id + day_of_week
-```
-
-### Bookings
-
-```text
-bookings
-├── id
-├── user_id
-├── service_id
-├── start_at
-├── status
-└── timestamps
-```
-
-## Eloquent Relationships
-
-The main relationships are:
-
-```text
-User
- ├── hasMany Services
- ├── hasMany Bookings
- └── hasMany BusinessHours
-
-Service
- ├── belongsTo User
- └── hasMany Bookings
-
-Booking
- ├── belongsTo User
- └── belongsTo Service
-
-BusinessHour
- └── belongsTo User
-```
-
-## Project Structure
-
-Important application directories:
-
-```text
-backend/
-├── app/
-│   ├── Enums/
-│   │   └── BookingStatus.php
-│   │
-│   ├── Http/
-│   │   ├── Controllers/
-│   │   │   └── Api/
-│   │   ├── Middleware/
-│   │   ├── Requests/
-│   │   └── Resources/
-│   │
-│   ├── Models/
-│   ├── Policies/
-│   └── Services/
-│       └── AvailabilityService.php
-│
-├── database/
-│   ├── factories/
-│   ├── migrations/
-│   └── seeders/
-│
-├── routes/
-│   └── api.php
-│
-├── tests/
-│   └── Feature/
-│
-├── Dockerfile
-└── ...
-```
-
-## Docker Environment
-
-The application runs using Docker Compose.
-
-Main containers/services:
-
-```text
-┌─────────────────────┐
-│       Nginx         │
-│      :8000          │
-└──────────┬──────────┘
-           │
-           ▼
-┌─────────────────────┐
-│   Laravel / PHP-FPM │
-│       :9000         │
-└──────────┬──────────┘
-           │
-           ▼
-┌─────────────────────┐
-│       MySQL 8.4     │
-│       :3306         │
-└─────────────────────┘
-
-┌─────────────────────┐
-│     phpMyAdmin      │
-│       :8080         │
-└─────────────────────┘
-```
-
-Inside the Docker network, Laravel connects to MySQL using:
-
-```env
-DB_HOST=mysql
-DB_PORT=3306
-```
-
-## Running the Project
-
-### Requirements
-
-* Docker Desktop
-* Docker Compose
-
-### Start the application
-
-From the project directory:
-
-```powershell
+```bash
+docker network inspect booking-monitoring >/dev/null || docker network create booking-monitoring
+cd monitoring
 docker compose up -d
-```
-
-Check running containers:
-
-```powershell
 docker compose ps
 ```
 
-### Run Laravel commands
+For the API probe to work, the Laravel Nginx container must also be running and attached to the shared `booking-monitoring` network.
 
-Artisan commands are executed inside the Laravel container:
+### Laravel commands and tests
 
-```powershell
-docker compose exec app php artisan
-```
+Run these from `backend/` using the Compose file and environment appropriate to your setup. For a development stack where `app` is running:
 
-Example:
-
-```powershell
-docker compose exec app php artisan migrate
-```
-
-### Run migrations and seeders
-
-```powershell
-docker compose exec app php artisan migrate:fresh --seed
-```
-
-### Clear Laravel caches
-
-```powershell
+```bash
+docker compose exec app php artisan test
 docker compose exec app php artisan optimize:clear
 ```
 
-## Access
+**Do not run `migrate:fresh --seed` against the WSL deployment or any database containing data you want to keep.** That command drops and recreates tables. For normal deployment migrations, use `php artisan migrate --force` through the deployment process.
 
-API:
+Tests cover authentication, authorization, services, business hours, booking lifecycle, availability, validation, and double-booking prevention.
 
-```text
-http://localhost:8000
-```
+---
 
-phpMyAdmin:
+## 📁 Project Structure
 
 ```text
-http://localhost:8080
+booking-platform/
+├── .github/
+│   └── workflows/           # CI, image publishing, WSL deployment
+├── backend/
+│   ├── app/
+│   │   ├── Enums/
+│   │   ├── Http/
+│   │   │   ├── Controllers/Api/
+│   │   │   ├── Middleware/
+│   │   │   ├── Requests/
+│   │   │   └── Resources/
+│   │   ├── Models/
+│   │   ├── Policies/
+│   │   └── Services/
+│   ├── database/
+│   │   ├── factories/
+│   │   ├── migrations/
+│   │   └── seeders/
+│   ├── routes/api.php
+│   ├── tests/Feature/
+│   ├── Dockerfile
+│   ├── compose.wsl.yaml      # WSL deployment stack
+│   └── deploy.sh             # Deployment script
+├── monitoring/
+│   ├── blackbox/
+│   │   └── blackbox.yml
+│   ├── prometheus/
+│   │   └── prometheus.yml
+│   └── compose.yaml
+└── README.md
 ```
 
-## Testing
+---
 
-The project contains feature tests covering the main API functionality.
+## 🔒 Security and Operational Notes
 
-Run the complete test suite:
+- **Authorization:** Laravel policies and middleware enforce ownership and role restrictions.
+- **Data integrity:** Database constraints, transactions, and locking help prevent invalid or overlapping bookings.
+- **Secrets:** Keep credentials and `.env.production` out of Git; configure secrets securely on the deployment host and in GitHub Actions.
+- **Network exposure:** Monitoring dashboards are local to the WSL environment in this project; do not expose them publicly without authentication and network controls.
+- **Runner trust:** A self-hosted runner can execute repository workflows on its host. Restrict workflow permissions and deployment triggers appropriately.
+- **Availability:** A successful health probe does not replace application-level integration tests, backups, or alerting.
 
-```powershell
-docker compose exec app php artisan test
-```
+---
 
-Run a specific test:
+## 🎓 What This Project Demonstrates
 
-```powershell
-docker compose exec app php artisan test --filter=BookingTest
-```
+This project combines **backend engineering** with practical **DevOps fundamentals**:
 
-The tests cover areas such as:
+- Design a role-aware REST API and relational data model.
+- Handle booking availability, state transitions, and concurrency.
+- Write automated tests and static-analysis checks.
+- Run a multi-service application with Docker Compose.
+- Build and publish images through GitHub Actions and GHCR.
+- Deploy through a self-hosted runner with health verification.
+- Observe host performance, container resources, and API availability.
 
-* Authentication
-* Services
-* Business hours
-* Bookings
-* Authorization
-* Booking status transitions
-* Availability
-* Double-booking prevention
-* Validation
+The goal is to understand **how code moves from a commit to a running, observable service**, rather than merely collecting technologies in a stack.
 
-## Development Approach
+---
 
-The project is being developed incrementally:
+<div align="center">
 
-```text
-Learn
-  ↓
-Implement
-  ↓
-Test
-  ↓
-Break something
-  ↓
-Debug
-  ↓
-Understand the problem
-  ↓
-Improve the implementation
-```
+**Built as a backend and DevOps learning project.**
 
-The focus is not only on making the API work, but also on understanding why each part exists and how the individual components interact.
+[Repository](https://github.com/JozvanCode/booking-platform)
 
-## Current Development Status
-
-Implemented:
-
-* Laravel API
-* Docker environment
-* MySQL
-* Nginx
-* phpMyAdmin
-* Sanctum authentication
-* User roles
-* Role middleware
-* Policies
-* Services
-* Business hours
-* Bookings
-* Booking status enum
-* Booking availability
-* Double-booking checks
-* Form Request validation
-* API Resources
-* Database relationships
-* Database constraints
-* Automated tests
-* Seeders
-
-Planned DevOps work:
-
-* Production Docker configuration
-* Kubernetes
-* CI/CD
-* Infrastructure as Code with Terraform
-* Cloud deployment
-* Production monitoring
-
-## Why This Project?
-
-This project is designed to demonstrate practical backend and DevOps skills through a realistic use case rather than isolated tutorials.
-
-The booking domain provides real problems to solve, including:
-
-* Authentication
-* Authorization
-* Ownership
-* Time-based availability
-* Database relationships
-* Transactions
-* Concurrency
-* Validation
-* State transitions
-* Automated testing
-* Containerization
-* Deployment
-* Infrastructure management
+</div>
